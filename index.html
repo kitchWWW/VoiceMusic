@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzicato/0.6.1/Pizzicato.min.js"></script>
+<body>
+
+<button id="go_all" onclick="goAll()">Start the whole thing</button>
+<br>
+<br>
+Instructions: <input type="text" id="myText" size="55" value="start the music!">
+<p>Type your instructions to the orchestra then press enter or this button below</p>
+<button id="myButton" onclick="myFunction()">Submit Instructions</button>
+
+<script>
+function URLify(string) {
+ return string.trim().replace(/\s/g, '%20');
+}
+
+allSoundFiles = []
+function goAll(){
+  console.log('probably start some of the loops playing');
+  ['bass','stringstrem','winds','piano','stringsmelody'].forEach((name)=>{
+    var new_file = new Pizzicato.Sound('res/'+name+'.wav', function() {
+      allSoundFiles[name].play();
+      allSoundFiles[name].volume = 0;
+      allSoundFiles[name].loop = true;
+    });
+    allSoundFiles[name] = new_file;
+  })
+  console.log(allSoundFiles);
+}
+
+
+document.getElementById("myText")
+   .addEventListener("keyup", function(event) {
+   event.preventDefault();
+   if (event.keyCode === 13) {
+       document.getElementById("myButton").click();
+   }
+});
+
+function randomInstrument(obj) {
+var keys = Object.keys(obj)
+console.log(keys)
+return keys[ keys.length * Math.random() << 0];
+}
+
+function myFunction() {
+ var res = document.getElementById("myText").value;
+ document.getElementById("myText").value = "";
+ console.log(res);
+	fetch("https://api.wit.ai/message?v=20200204&q="+URLify(res), {
+	  headers: {
+	    Authorization: "Bearer YRP5ROMET2FO3A54HYWB7R72VV6TRSF2"
+	  }
+	})
+ .then(blob => blob.json())
+ .then(data => {
+   console.table(data);
+var intent = ''
+if(data.entities.intent){
+  intent = data.entities.intent[0].value
+ }
+var instrument = ''
+  if(data.entities.instrument){
+    instrument = data.entities.instrument[0].value
+  }
+
+console.log(intent)
+console.log(instrument)
+
+instrument_subs = {
+  'violin':'stringsmelody',
+  'fill':'stringstrem',
+  'strings': 'stringsmelody',
+}
+
+if(instrument in instrument_subs){
+  instrument = instrument_subs[instrument];
+}
+
+
+if(instrument == '!'){instrument = ""}
+  switch(intent) {
+  case 'add':
+    if(instrument == '' ){
+      instrument = randomInstrument(allSoundFiles);
+    }
+    if(allSoundFiles[instrument].volume < 1){
+      allSoundFiles[instrument].volume += .2;      
+    }else{
+      allSoundFiles[instrument].volume =1;      
+    }
+    break;
+  case 'less':
+    if(instrument == '' ){
+      instrument = randomInstrument(allSoundFiles);
+    }
+  if(allSoundFiles[instrument].volume > .2){
+    allSoundFiles[instrument].volume -= .2;
+  }else{
+    allSoundFiles[instrument].volume =2;
+  }
+    
+    break;
+  default:
+    // code block
+}
+
+ })
+ .catch(e => {
+   console.log(e);
+   return e;
+ });
+
+}
+
+
+
+
+
+
+window.onclick = function(){
+ let context = Pizzicato.context
+ let source = context.createBufferSource()
+ source.buffer = context.createBuffer(1, 1, 22050)
+ source.connect(context.destination)
+ source.start()
+}
+</script>
+   </body>
+</html>
